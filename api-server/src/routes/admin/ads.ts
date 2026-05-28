@@ -20,8 +20,8 @@ const DEFAULT_ADS_CONFIG = {
 };
 
 router.get("/", adminAuth, async (_req, res) => {
-  const config = (await rtdbGet("adminConfig/ads")) as Record<string, unknown> | null;
-  res.json({ ...DEFAULT_ADS_CONFIG, ...(config ?? {}) });
+  const config = await rtdbGet("adminConfig/ads");
+  res.json({ ...(DEFAULT_ADS_CONFIG), ...(config ?? {}) });
 });
 
 router.patch("/", adminAuth, async (req, res) => {

@@ -1,9 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "npm run build",
+  "buildCommand": "echo 'no build step - Vercel bundles api/index.ts'",
   "functions": {
-    "api/index.ts": { "maxDuration": 30 }
+    "api/index.ts": {
+      "maxDuration": 30
+    }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
+  ]
 }

@@ -14,9 +14,10 @@ router.get("/", adminAuth, async (_req, res) => {
   const raw = await rtdbGet("adminConfig/announcements");
   const list = Object.entries((raw ?? {}) as Record<string, unknown>).map(
     ([id, v]) => ({ id, ...(v as object) })
-  ).sort((a, b) => ((b as any)["at"] ?? 0) - ((a as any)["at"] ?? 0));
+  ).sort((a, b) => ((b as Record<string, number>)["at"] ?? 0) - ((a as Record<string, number>)["at"] ?? 0));
   res.json({ announcements: list });
 });
+
 router.post("/", adminAuth, async (req, res) => {
   const { title, message, type, expiresAt } = req.body as {
     title: string; message: string;
