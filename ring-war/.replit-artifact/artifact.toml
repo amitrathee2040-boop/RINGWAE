@@ -1,0 +1,32 @@
+kind = "web"
+  previewPath = "/"
+  title = "Ring War"
+  version = "1.0.0"
+  id = "artifacts/ring-war"
+  router = "path"
+
+  [[integratedSkills]]
+  name = "react-vite"
+  version = "1.0.0"
+
+  [[services]]
+  name = "web"
+  paths = [ "/" ]
+  localPort = 24567
+
+  [services.development]
+  run = "pnpm --filter @workspace/ring-war run dev"
+
+  [services.production]
+  build = [ "pnpm", "--filter", "@workspace/ring-war", "run", "build" ]
+  publicDir = "artifacts/ring-war/dist/public"
+  serve = "static"
+
+  [[services.production.rewrites]]
+  from = "/*"
+  to = "/index.html"
+
+  [services.env]
+  PORT = "24567"
+  BASE_PATH = "/"
+  

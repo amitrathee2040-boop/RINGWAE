@@ -3,7 +3,8 @@
  * Token is stored in localStorage under "rw-admin-token".
  */
 
-const BASE = "/api/admin";
+const API_ROOT = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+const BASE = `${API_ROOT}/api/admin`;
 
 export function getToken(): string | null {
   return localStorage.getItem("rw-admin-token");
