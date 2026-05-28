@@ -12,7 +12,7 @@ import {
 import { getBestMove4, getHintMove4 } from "../game/botAI4";
 import Board4Component from "./Board4";
 import HUD4 from "./HUD4";
-import AdSlot from "./AdSlot";
+import AdSlot, { AdInterstitial } from "./AdSlot";
 
 import { useVoiceSpeaking4 } from "../hooks/useVoiceSpeaking4";
 import VoicePanel4 from "./VoicePanel4";
@@ -45,6 +45,8 @@ export default function Game4({ uid, roomCode }: Props) {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [hintMove, setHintMove] = useState<{ from: number; to: number } | null>(null);
   const [hintVisible, setHintVisible] = useState(false);
+  const [showHintAd, setShowHintAd] = useState(false);
+  const [hintAdCountdown, setHintAdCountdown] = useState(0);
 
   function handleHintClick() {
     if (!room || !myKey || room.currentTurn !== myKey || !!room.winner) return;

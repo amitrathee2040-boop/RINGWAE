@@ -9,7 +9,7 @@ import CharacterSelect4 from "./CharacterSelect4";
 
 import { ArrowLeft, RotateCcw, Lightbulb } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import AdSlot from "./AdSlot";
+import AdSlot, { AdInterstitial } from "./AdSlot";
 
 type Screen = "setup" | "charselect" | "playing" | "result";
 
@@ -36,6 +36,8 @@ export default function OfflineGame4({ uid: _uid }: { uid: string }) {
 
   const [hintMove, setHintMove] = useState<{ from: number; to: number } | null>(null);
   const [hintVisible, setHintVisible] = useState(false);
+  const [showHintAd, setShowHintAd] = useState(false);
+  const [hintAdCountdown, setHintAdCountdown] = useState(0);
 
   function handleHintClick() {
     const best = getHintMove4(board, currentTurn, inCombo, comboFrom);

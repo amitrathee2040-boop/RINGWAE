@@ -129,7 +129,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             {(user?.username ?? "A").charAt(0).toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", truncate: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
               {user?.username}
             </div>
             <div style={{ fontSize: 10, color: "var(--accent)", fontWeight: 600, letterSpacing: "0.04em" }}>
