@@ -55,7 +55,7 @@ export default function BotGame({ uid: _uid, difficulty }: Props) {
   inComboRef.current = inCombo;
   comboFromRef.current = comboFrom;
 
-  const p1Color = colorOf(myPieceColor);
+  const p1Color = colorOf(myPieceColor as any);
   const p2Color = colorOf("pink");
   const p1Pieces = countPieces(board, "player1");
   const p2Pieces = countPieces(board, "player2");

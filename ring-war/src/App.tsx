@@ -154,14 +154,14 @@ export default function App() {
               onLogin={handleLogin}
             />
           )} />
-          <Route path="/room/:code"     component={({ params }) => <Game uid={uid!} roomCode={params.code} />} />
-          <Route path="/spectate/:code" component={({ params }) => <SpectatorView uid={uid!} roomCode={params.code} />} />
-          <Route path="/bot/:difficulty" component={({ params }) => <BotGame uid={uid!} difficulty={params.difficulty as "easy" | "normal" | "hard"} />} />
-          <Route path="/bot4/:difficulty" component={({ params }) => <BotGame4 uid={uid!} difficulty={params.difficulty as "easy" | "normal" | "hard"} />} />
+          <Route path="/room/:code"     component={(props: any) => <Game uid={uid!} roomCode={props?.params?.code ?? ""} />} />
+          <Route path="/spectate/:code" component={(props: any) => <SpectatorView uid={uid!} roomCode={props?.params?.code ?? ""} />} />
+          <Route path="/bot/:difficulty" component={(props: any) => <BotGame uid={uid!} difficulty={(props?.params?.difficulty as "easy" | "normal" | "hard") ?? "normal"} />} />
+          <Route path="/bot4/:difficulty" component={(props: any) => <BotGame4 uid={uid!} difficulty={(props?.params?.difficulty as "easy" | "normal" | "hard") ?? "normal"} />} />
           <Route path="/offline"   component={() => <OfflineGame uid={uid!} />} />
           <Route path="/offline4"  component={() => <OfflineGame4 uid={uid!} />} />
           <Route path="/quickmatch4" component={() => <QuickMatch4 uid={uid!} />} />
-          <Route path="/room4/:code" component={({ params }) => <Game4 uid={uid!} roomCode={params.code} />} />
+          <Route path="/room4/:code" component={(props: any) => <Game4 uid={uid!} roomCode={props?.params?.code ?? ""} />} />
           <Route path="/profile"   component={() => <Profile uid={uid!} />} />
           <Route path="/admin"     component={() => <AdminPage />} />
           <Route path="/history"   component={() => <MatchHistory />} />

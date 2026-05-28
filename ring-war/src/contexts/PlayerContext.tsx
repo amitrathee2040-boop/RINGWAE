@@ -21,6 +21,9 @@ export interface Skin {
 }
 
 export interface PlayerData {
+  uid?: string;
+  displayName?: string;
+  pieceColor?: string;
   coins: number;
   gems: number;
   xp: number;
