@@ -12,9 +12,10 @@ const router = Router();
 
 router.get("/", adminAuth, async (_req, res) => {
   const raw = await rtdbGet("adminConfig/announcements");
-  const list = Object.entries((raw ?? {}) as Record<string, unknown>).map(
-    ([id, v]) => ({ id, ...(v as object) })
-  ).sort((a, b) => ((b as Record<string, number>)["at"] ?? 0) - ((a as Record<string, number>)["at"] ?? 0));
+  const entries = Object.entries((raw ?? {}) as Record<string, Record<string, unknown>>);
+  const list: Array<Record<string, unknown> & { id: string }> = entries
+    .map(([id, v]) => ({ ...v, id } as Record<string, unknown> & { id: string }))
+    .sort((a, b) => ((b["at"] as number | undefined) ?? 0) - ((a["at"] as number | undefined) ?? 0));
   res.json({ announcements: list });
 });
 

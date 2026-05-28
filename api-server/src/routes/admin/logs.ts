@@ -16,13 +16,13 @@ router.get("/", adminAuth, async (req, res) => {
   const raw = await rtdbGet("adminLogs");
   const logsMap = (raw ?? {}) as Record<string, Record<string, unknown>>;
 
-  let logs = Object.entries(logsMap).map(([id, v]) => ({ id, ...v }));
+  let logs: Array<Record<string, unknown> & { id: string }> = Object.entries(logsMap).map(([id, v]) => ({ ...v, id } as Record<string, unknown> & { id: string }));
 
   if (filterType) {
-    logs = logs.filter((l) => l["type"] === filterType);
+    logs = logs.filter((l) => (l["type"] as string | undefined) === filterType);
   }
 
-  logs.sort((a, b) => ((b["at"] as number) ?? 0) - ((a["at"] as number) ?? 0));
+  logs.sort((a, b) => ((b["at"] as number | undefined) ?? 0) - ((a["at"] as number | undefined) ?? 0));
 
   const total = logs.length;
   res.json({
