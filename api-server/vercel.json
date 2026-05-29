@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "echo 'no build step - Vercel bundles api/[...slug].ts'",
+  "buildCommand": "echo 'no build step - Vercel bundles api/index.ts'",
   "functions": {
-    "api/[...slug].ts": {
+    "api/index.ts": {
       "maxDuration": 30
     }
   },
@@ -13,14 +13,11 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "https://ringwae-admin.vercel.app" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With, Accept, Origin" },
-        { "key": "Access-Control-Max-Age", "value": "86400" },
-        { "key": "Vary", "value": "Origin" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With, Accept, Origin" }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/health", "destination": "/api" },
-    { "source": "/", "destination": "/api" }
+    { "source": "/(.*)", "destination": "/api/index" }
   ]
 }
