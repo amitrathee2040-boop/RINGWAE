@@ -9,15 +9,21 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
     dedupe: ["react", "react-dom"],
   },
+  optimizeDeps: {
+    include: ["react", "react-dom", "react-dom/client", "recharts"],
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ["react", "react-dom"],
-          ui: ["lucide-react", "recharts"],
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react-dom") || id.match(/[\\/]react[\\/]/)) return "react";
+            if (id.includes("recharts") || id.includes("d3-")) return "charts";
+            if (id.includes("@radix-ui") || id.includes("lucide-react")) return "ui";
+          }
         },
       },
     },
