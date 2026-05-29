@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { ref, onValue, update } from "firebase/database";
-import { db } from "../firebase";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { db, auth } from "../firebase";
 
 export type League = "bronze" | "silver" | "gold" | "platinum" | "diamond" | "crown" | "legend";
 export type Theme = "dark" | "light" | "auto";
@@ -298,6 +299,15 @@ export function PlayerProvider({ uid, children }: { uid: string; children: React
     else root.classList.remove("light");
   }, [theme]);
 
+  // Track Firebase auth user so the player profile can be seeded with
+  // displayName / email / photoURL from Google (instead of the "Warrior" default).
+  const [authUser, setAuthUser] = useState<User | null>(() => auth?.currentUser ?? null);
+  useEffect(() => {
+    if (!auth) return;
+    const unsub = onAuthStateChanged(auth, (u) => setAuthUser(u));
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     if (!uid) return;
 
@@ -308,22 +318,41 @@ export function PlayerProvider({ uid, children }: { uid: string; children: React
 
     const playerRef = ref(db!, `players/${uid}`);
     const unsub = onValue(playerRef, (snap) => {
+      // Pull live Google profile info from Firebase Auth (if signed in & not anonymous)
+      const googleName  = authUser && !authUser.isAnonymous ? (authUser.displayName || "") : "";
+      const googleEmail = authUser && !authUser.isAnonymous ? (authUser.email       || "") : "";
+      const googlePhoto = authUser && !authUser.isAnonymous ? (authUser.photoURL    || "") : "";
+
       if (snap.exists()) {
-        const d = snap.val();
+        const d = snap.val() as Partial<PlayerData>;
+        // Backfill profile fields from Google account when missing or still defaulted.
+        const patch: Partial<PlayerData> = {};
+        if (googleName  && (!d.name  || d.name === "Warrior")) patch.name  = googleName;
+        if (googleEmail && !d.email)                            patch.email = googleEmail;
+        if (googlePhoto && !d.profilePhoto)                     patch.profilePhoto = googlePhoto;
+        if (Object.keys(patch).length) {
+          update(playerRef, patch).catch(() => {});
+        }
         setData({
           ...DEFAULT_DATA,
           ...d,
+          ...patch,
           equippedSkins: { ...DEFAULT_DATA.equippedSkins, ...(d.equippedSkins || {}) },
           ownedSkins: d.ownedSkins || DEFAULT_DATA.ownedSkins,
         });
       } else {
-        const initial = { ...DEFAULT_DATA };
+        const initial: PlayerData = {
+          ...DEFAULT_DATA,
+          name:         googleName  || DEFAULT_DATA.name,
+          email:        googleEmail || DEFAULT_DATA.email,
+          profilePhoto: googlePhoto || DEFAULT_DATA.profilePhoto,
+        };
         update(playerRef, initial).catch(() => {});
         setData(initial);
       }
     });
     return unsub;
-  }, [uid, isOffline]);
+  }, [uid, isOffline, authUser]);
 
   const patchData = useCallback((patch: Partial<PlayerData>) => {
     if (!uid) return;
