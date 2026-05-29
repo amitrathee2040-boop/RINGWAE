@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { signInAnonymously, onAuthStateChanged, signInWithPopup, signInWithRedirect } from "firebase/auth";
-import { hasFirebaseConfig, auth, googleProvider } from "./firebase";
+import { signInAnonymously, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { hasFirebaseConfig, auth, googleProvider, authReady } from "./firebase";
 import { PlayerProvider } from "./contexts/PlayerContext";
 import Lobby from "./components/Lobby";
 import Game from "./components/Game";
@@ -53,6 +53,14 @@ export default function App() {
     }, 8000);
 
     const firebaseAuth = auth;
+
+    // Handle return from signInWithRedirect (mobile / popup-blocked browsers).
+    // Must run before the first onAuthStateChanged fallback to anonymous, so
+    // a redirected Google login isn't overwritten by a guest session.
+    authReady
+      .then(() => getRedirectResult(firebaseAuth))
+      .catch((err) => console.warn("[auth] getRedirectResult failed:", err));
+
     const unsub = onAuthStateChanged(firebaseAuth, async (user) => {
       clearTimeout(timeout);
       if (user) {
@@ -63,6 +71,7 @@ export default function App() {
         setLoading(false);
       } else {
         try {
+          await authReady;
           const cred = await signInAnonymously(firebaseAuth);
           setUid(cred.user.uid);
           setIsGuest(true);
@@ -85,6 +94,9 @@ export default function App() {
     if (!auth) return;
 
     try {
+      // Ensure persistence is configured BEFORE sign-in so the session is
+      // written to localStorage/IndexedDB and survives reloads.
+      await authReady;
       const result = await signInWithPopup(auth, googleProvider);
       setUid(result.user.uid);
       setIsGuest(false);
@@ -92,6 +104,7 @@ export default function App() {
       console.warn("Popup login failed, trying redirect login:", e);
 
       try {
+        await authReady;
         await signInWithRedirect(auth, googleProvider);
       } catch (redirectError) {
         console.error("Redirect login failed:", redirectError);
