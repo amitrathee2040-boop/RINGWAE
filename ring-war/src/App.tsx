@@ -1,6 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { signInAnonymously, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import {
+  signInAnonymously,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+} from "firebase/auth";
 import { hasFirebaseConfig, auth, googleProvider, authReady } from "./firebase";
 import { PlayerProvider } from "./contexts/PlayerContext";
 import Lobby from "./components/Lobby";
@@ -39,75 +45,170 @@ export default function App() {
 
   useEffect(() => {
     if (!hasFirebaseConfig || auth === null) {
+      console.log("[auth] no firebase config — offline mode");
       setUid("offline-" + Math.random().toString(36).slice(2));
       setIsGuest(true);
       setLoading(false);
       return;
     }
 
-    // Safety timeout: if Firebase auth takes >8s, fall back to offline mode
+    const firebaseAuth = auth;
+    let cancelled = false;
+    // Guards that prevent the guest-init race condition:
+    //   1. `persistenceReady` — wait until Firebase persistence is configured
+    //      so signInAnonymously isn't called before the persisted user is
+    //      restored from localStorage / IndexedDB.
+    //   2. `redirectChecked` — wait until getRedirectResult() resolves so a
+    //      Google-redirect login isn't overwritten by an anonymous fallback.
+    //   3. `hasRealUser` — once we observe a non-anonymous user we NEVER
+    //      fall back to guest; we just wait for the real session to restore.
+    let persistenceReady = false;
+    let redirectChecked = false;
+    let hasRealUser = false;
+
+    // Safety timeout: if Firebase never resolves (8s), drop to offline mode.
     const timeout = setTimeout(() => {
+      if (cancelled || hasRealUser) return;
+      console.warn("[auth] firebase auth timed out — offline fallback");
       setUid("offline-" + Math.random().toString(36).slice(2));
       setIsGuest(true);
       setLoading(false);
     }, 8000);
 
-    const firebaseAuth = auth;
+    const maybeSignInAnon = async (user: import("firebase/auth").User | null) => {
+      if (cancelled || hasRealUser) return;
+      if (!persistenceReady || !redirectChecked) {
+        console.log("[auth] deferring guest init — persistence/redirect not ready", {
+          persistenceReady, redirectChecked,
+        });
+        return;
+      }
+      // Re-check currentUser at the moment we'd sign in — it may have been
+      // restored from persistence between events.
+      const current = firebaseAuth.currentUser ?? user;
+      if (current) {
+        console.log("[auth] currentUser present, skip anon init:", current.uid, "anon=", current.isAnonymous);
+        return;
+      }
+      try {
+        console.log("[auth] no user after auth-ready — signing in anonymously");
+        const cred = await signInAnonymously(firebaseAuth);
+        if (cancelled || hasRealUser) return;
+        setUid(cred.user.uid);
+        setIsGuest(true);
+        setAuthError(null);
+        setLoading(false);
+      } catch (e: unknown) {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error("[auth] anonymous sign-in failed:", msg);
+        setAuthError(msg);
+        setUid("offline-" + Math.random().toString(36).slice(2));
+        setIsGuest(true);
+        setLoading(false);
+      }
+    };
 
-    // Handle return from signInWithRedirect (mobile / popup-blocked browsers).
-    // Must run before the first onAuthStateChanged fallback to anonymous, so
-    // a redirected Google login isn't overwritten by a guest session.
-    authReady
-      .then(() => getRedirectResult(firebaseAuth))
-      .catch((err) => console.warn("[auth] getRedirectResult failed:", err));
-
-    const unsub = onAuthStateChanged(firebaseAuth, async (user) => {
+    // Register auth listener IMMEDIATELY so a persisted (Google) session is
+    // picked up as soon as Firebase restores it from local storage.
+    const unsub = onAuthStateChanged(firebaseAuth, (user) => {
+      if (cancelled) return;
+      console.log("[auth] onAuthStateChanged:", {
+        uid: user?.uid ?? null,
+        anonymous: user?.isAnonymous ?? null,
+        email: user?.email ?? null,
+      });
       clearTimeout(timeout);
       if (user) {
+        if (!user.isAnonymous) {
+          // Real account: lock in and never fall back to guest.
+          hasRealUser = true;
+          console.log("[auth] real account locked in:", user.uid);
+        }
         setUid(user.uid);
-        // Anonymous users are guests; real accounts (Google etc.) are not
         setIsGuest(user.isAnonymous);
         setAuthError(null);
         setLoading(false);
       } else {
-        try {
-          await authReady;
-          const cred = await signInAnonymously(firebaseAuth);
-          setUid(cred.user.uid);
-          setIsGuest(true);
-          setAuthError(null);
-          setLoading(false);
-        } catch (e: unknown) {
-          const msg = e instanceof Error ? e.message : String(e);
-          setAuthError(msg);
-          setUid("offline-" + Math.random().toString(36).slice(2));
-          setIsGuest(true);
-          setLoading(false);
-        }
+        // No user yet — DO NOT immediately create a guest. Wait until
+        // persistence + redirect result have both been checked.
+        void maybeSignInAnon(null);
       }
     });
-    return () => { clearTimeout(timeout); unsub(); };
+
+    // Run persistence init + redirect check, then re-evaluate.
+    (async () => {
+      try {
+        await authReady;
+        if (cancelled) return;
+        persistenceReady = true;
+        console.log("[auth] persistence ready, current=", firebaseAuth.currentUser?.uid ?? null);
+      } catch (e) {
+        console.warn("[auth] authReady failed:", e);
+        persistenceReady = true;
+      }
+      try {
+        const result = await getRedirectResult(firebaseAuth);
+        if (cancelled) return;
+        if (result?.user) {
+          hasRealUser = true;
+          console.log("[auth] restored from redirect login:", result.user.uid);
+          setUid(result.user.uid);
+          setIsGuest(false);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.warn("[auth] getRedirectResult failed:", err);
+      } finally {
+        redirectChecked = true;
+        void maybeSignInAnon(firebaseAuth.currentUser);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      unsub();
+    };
   }, []);
 
   // Google login handler — called when user clicks "Login" in Lobby
   const handleLogin = useCallback(async () => {
-    if (!auth) return;
-
+    if (!auth) {
+      console.warn("[auth] login clicked but firebase auth unavailable");
+      return;
+    }
     try {
       // Ensure persistence is configured BEFORE sign-in so the session is
-      // written to localStorage/IndexedDB and survives reloads.
+      // written to IndexedDB/localStorage and survives reloads.
       await authReady;
+      console.log("[auth] starting Google popup login");
       const result = await signInWithPopup(auth, googleProvider);
+      console.log("[auth] popup login success:", result.user.uid, result.user.email);
+      // Commit synchronously so the UI cannot flicker back to guest before
+      // onAuthStateChanged fires.
       setUid(result.user.uid);
       setIsGuest(false);
+      setAuthError(null);
+      setLoading(false);
     } catch (e: unknown) {
-      console.warn("Popup login failed, trying redirect login:", e);
-
+      const code = (e as { code?: string })?.code;
+      // User-cancelled popups should NOT degrade to redirect — that would
+      // navigate away and re-trigger guest init on return.
+      if (
+        code === "auth/popup-closed-by-user" ||
+        code === "auth/cancelled-popup-request" ||
+        code === "auth/user-cancelled"
+      ) {
+        console.log("[auth] popup cancelled by user:", code);
+        return;
+      }
+      console.warn("[auth] popup login failed, falling back to redirect:", e);
       try {
         await authReady;
         await signInWithRedirect(auth, googleProvider);
       } catch (redirectError) {
-        console.error("Redirect login failed:", redirectError);
+        console.error("[auth] redirect login failed:", redirectError);
       }
     }
   }, []);
