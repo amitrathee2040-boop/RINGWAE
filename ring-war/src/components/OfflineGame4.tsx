@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { buildInitialBoard4, Player4Key, PLAYER4_COLORS, ALL_PLAYERS4 } from "../game/boardDefinition4";
 import { applyMove4, hasAnyMoves4, Board4, nextTurn4, countPieces4 } from "../game/gameLogic4";
 import { getHintMove4 } from "../game/botAI4";
+import { logOfflineGameplay } from "../lib/offlineMode";
 import Board4Component from "./Board4";
 import HUD4 from "./HUD4";
 import CharacterSelect4 from "./CharacterSelect4";
@@ -21,6 +22,7 @@ const DEFAULT_NAMES: Record<Player4Key, string> = {
 };
 
 export default function OfflineGame4({ uid: _uid }: { uid: string }) {
+  useEffect(() => { logOfflineGameplay("OfflineGame4"); }, []);
   const [, setLocation] = useLocation();
   const [screen, setScreen] = useState<Screen>("setup");
   const [names, setNames] = useState<Record<Player4Key, string>>({ ...DEFAULT_NAMES });

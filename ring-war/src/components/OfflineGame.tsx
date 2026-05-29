@@ -11,11 +11,13 @@ import GameResult from "./GameResult";
 import { ArrowLeft, Lightbulb } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AdSlot, { AdInterstitial } from "./AdSlot";
+import { logOfflineGameplay } from "../lib/offlineMode";
 
 type Screen = "setup" | "playing" | "result";
 
 export default function OfflineGame({ uid: _uid }: { uid: string }) {
   const [, setLocation] = useLocation();
+  useEffect(() => { logOfflineGameplay("OfflineGame"); }, []);
   const [screen, setScreen] = useState<Screen>("setup");
   const [p1Name, setP1Name] = useState("Player 1");
   const [p2Name, setP2Name] = useState("Player 2");

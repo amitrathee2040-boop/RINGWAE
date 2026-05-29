@@ -8,6 +8,7 @@ import {
   getRedirectResult,
 } from "firebase/auth";
 import { hasFirebaseConfig, auth, googleProvider, authReady } from "./firebase";
+import { isOfflineModePreferred, onNetworkChange } from "./lib/offlineMode";
 import { PlayerProvider } from "./contexts/PlayerContext";
 import Lobby from "./components/Lobby";
 import Game from "./components/Game";
@@ -32,20 +33,18 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
 
   // Track internet connectivity
-  useEffect(() => {
-    const onOnline  = () => setIsOnline(true);
-    const onOffline = () => setIsOnline(false);
-    window.addEventListener("online",  onOnline);
-    window.addEventListener("offline", onOffline);
-    return () => {
-      window.removeEventListener("online",  onOnline);
-      window.removeEventListener("offline", onOffline);
-    };
-  }, []);
+  useEffect(() => onNetworkChange(setIsOnline), []);
 
   useEffect(() => {
+    if (isOfflineModePreferred()) {
+      console.log("[OFFLINE MODE] App started in local-only mode — auth skipped");
+      setUid("offline-" + Math.random().toString(36).slice(2));
+      setIsGuest(true);
+      setLoading(false);
+      return;
+    }
     if (!hasFirebaseConfig || auth === null) {
-      console.log("[auth] no firebase config — offline mode");
+      console.log("[OFFLINE MODE] No firebase config — local-only fallback");
       setUid("offline-" + Math.random().toString(36).slice(2));
       setIsGuest(true);
       setLoading(false);

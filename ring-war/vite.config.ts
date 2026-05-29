@@ -13,15 +13,24 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     chunkSizeWarningLimit: 2000,
+    target: "es2019",
+    cssCodeSplit: true,
+    reportCompressedSize: false,
+    minify: "esbuild",
     rollupOptions: {
       output: {
         manualChunks: {
           react: ["react", "react-dom"],
-          firebase: ["firebase/app", "firebase/auth", "firebase/firestore"],
+          // Online-only systems are split into their own chunks so the
+          // offline-mode startup path never downloads them. They are loaded
+          // lazily via dynamic import() only when Online Mode is selected.
+          firebase: ["firebase/app", "firebase/auth", "firebase/database"],
           ui: ["framer-motion", "lucide-react"],
           agora: ["agora-rtc-sdk-ng"],
+          photon: ["photon-realtime"],
         },
       },
     },
   },
+  server: { host: true },
 });

@@ -1,0 +1,14 @@
+{
+  "name": "Ring War",
+  "short_name": "Ring War",
+  "description": "Ring War — offline-first ring strategy game.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070d1a",
+  "theme_color": "#070d1a",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

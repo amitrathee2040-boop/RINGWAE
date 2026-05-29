@@ -10,6 +10,7 @@ import {
   browserSessionPersistence,
   inMemoryPersistence,
 } from "firebase/auth";
+import { isOfflineModePreferred } from "./lib/offlineMode";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -33,7 +34,14 @@ let _auth: Auth | null = null;
 // localStorage/IndexedDB and survives reloads.
 export let authReady: Promise<void> = Promise.resolve();
 
-if (hasFirebaseConfig) {
+// HARD OFFLINE GUARD: if the user explicitly chose Offline Mode, do NOT
+// initialize Firebase at all. Bot/hot-seat games run 100% locally.
+const offlinePreferred = isOfflineModePreferred();
+if (offlinePreferred) {
+  console.log("[OFFLINE MODE] Firebase init skipped (user preference)");
+}
+
+if (hasFirebaseConfig && !offlinePreferred) {
   try {
     app = initializeApp(firebaseConfig);
     _db = getDatabase(app);

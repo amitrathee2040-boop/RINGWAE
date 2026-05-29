@@ -504,15 +504,21 @@ export default function Lobby({ uid, isOffline, isGuest, isOnline, onLogin }: Pr
 
   function goOnline() {
     if (!isOnline) { setAuthBlock("no-internet"); return; }
+    import("../lib/offlineMode").then(m => m.setOfflineModePreferred(false));
     setViewMode("online");
     setScreen("home");
     setActiveNav("home");
+    // Reload so Firebase / multiplayer subsystems can initialize cleanly.
+    setTimeout(() => window.location.reload(), 50);
   }
 
   function goOffline() {
+    import("../lib/offlineMode").then(m => m.setOfflineModePreferred(true));
     setViewMode("offline");
     setScreen("home");
     setActiveNav("home");
+    // Reload so any active Firebase / Photon / Agora listeners are torn down.
+    setTimeout(() => window.location.reload(), 50);
   }
 
   function openGlobalChat() {

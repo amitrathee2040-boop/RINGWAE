@@ -14,6 +14,7 @@ import GameResult from "./GameResult";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flag, LogOut, Lightbulb } from "lucide-react";
 import AdSlot, { AdInterstitial } from "./AdSlot";
+import { logOfflineGameplay } from "../lib/offlineMode";
 
 
 interface Props {
@@ -25,6 +26,7 @@ type Screen = "playing" | "result";
 
 export default function BotGame({ uid: _uid, difficulty }: Props) {
   const [, setLocation] = useLocation();
+  useEffect(() => { logOfflineGameplay("BotGame"); }, []);
   const { data } = usePlayer();
   const myName = data?.displayName || localStorage.getItem("ringwar-name") || "Warrior";
   const myPieceColor = data?.pieceColor || "orange";

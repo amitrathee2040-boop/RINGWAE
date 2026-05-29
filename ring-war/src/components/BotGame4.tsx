@@ -13,6 +13,7 @@ import { usePlayer } from "../contexts/PlayerContext";
 import { ArrowLeft, Lightbulb } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AdSlot, { AdInterstitial } from "./AdSlot";
+import { logOfflineGameplay } from "../lib/offlineMode";
 
 interface Props { uid: string; difficulty: "easy" | "normal" | "hard"; }
 
@@ -29,6 +30,7 @@ const CHAR_EMOJIS: Record<string, string> = {
 };
 
 export default function BotGame4({ uid: _uid, difficulty }: Props) {
+  useEffect(() => { logOfflineGameplay("BotGame4"); }, []);
   const [, setLocation] = useLocation();
   const { data } = usePlayer();
   const myName = data?.displayName || localStorage.getItem("ringwar-name") || "Warrior";

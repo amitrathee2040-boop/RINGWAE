@@ -3,6 +3,7 @@
  * Uses Photon as an alternative/backup networking layer alongside Firebase.
  */
 import Photon from "photon-realtime";
+import { isOfflineModePreferred, logOnlineInit } from "../lib/offlineMode";
 
 const { LoadBalancingClient, ConnectionProtocol } = Photon;
 
@@ -13,8 +14,12 @@ const APP_ID = import.meta.env.VITE_PHOTON_APP_ID ?? "";
 let _client: PhotonClient | null = null;
 
 export function getPhotonClient(): PhotonClient {
+  if (isOfflineModePreferred()) {
+    throw new Error("[OFFLINE MODE] Photon disabled — switch to Online Mode to use multiplayer");
+  }
   if (!_client && APP_ID) {
     _client = new LoadBalancingClient(ConnectionProtocol.Wss, APP_ID, "1.0");
+    logOnlineInit("Photon");
   }
   if (!_client) throw new Error("Photon APP_ID not configured (VITE_PHOTON_APP_ID)");
   return _client;
